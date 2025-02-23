@@ -1,0 +1,177 @@
+# constant a, the PDE for T
+# central Euler for the space discretization
+# for different kinds of cross section. 1st: square (-1, 1) x (-1, 1); 2nd: circle with radius 1
+
+
+#%% 1st: Cartesian coordinate
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+D_T = 1e-5
+c_a = 1e-3
+beta = 0.01
+T_f = 250.0
+
+# Space
+x_min, x_max = -1.0, 1.0
+y_min, y_max = -1.0, 1.0
+Nx, Ny = 101, 101  # number of points
+dx = (x_max - x_min) / (Nx - 1)
+dy = (y_max - y_min) / (Ny - 1)
+
+x = np.linspace(x_min, x_max, Nx)
+y = np.linspace(y_min, y_max, Ny)
+X, Y = np.meshgrid(x, y, indexing='ij')
+
+# Time
+dt = 0.01  # time step
+num_steps = 700000  # * dt = total time
+
+# Initialize the temperature
+T = T_f * np.ones((Nx, Ny))
+T[0, :] = T[-1, :] = T[:, 0] = T[:, -1] = T_f
+
+
+for n in range(num_steps):
+    # since dx = dy
+    laplacian = np.zeros_like(T)
+    laplacian[1:-1, 1:-1] = (T[2:, 1:-1] + T[:-2, 1:-1] - 4 * T[1:-1, 1:-1] + T[1:-1, 2:] + T[1:-1, :-2]) / (dx ** 2)
+
+    reaction = c_a * np.exp(beta * T)
+
+    T = T + dt * (D_T * laplacian + reaction)
+
+    # Reset the boundary conditions
+    T[0, :] = T[-1, :] = T[:, 0] = T[:, -1] = T_f
+
+
+print("Max temperature:", np.max(T))
+print("Min temperature:", np.min(T))
+
+
+# Plot
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+T_plot = T.T
+surf = ax.plot_surface(X, Y, T_plot, cmap='viridis',
+                      rstride=2, cstride=2,
+                      linewidth=0, antialiased=True)
+
+cbar = fig.colorbar(surf, shrink=0.5, aspect=10)
+cbar.set_label('Temperature (K)', fontsize=12)
+
+ax.view_init(elev=30, azim=45)  # elev=俯仰角, azim=方位角
+
+ax.set_xlabel('X (m)', fontsize=12, labelpad=10)
+ax.set_ylabel('Y (m)', fontsize=12, labelpad=10)
+ax.set_zlabel('Temperature (K)', fontsize=12, labelpad=10)
+ax.set_title(f"Final Temperature at t = {num_steps * dt:.4f}", fontsize=14, pad=20)
+ax.set_zlim(T.min()-10, T.max()+10)
+
+plt.tight_layout()
+plt.show()
+
+
+# # Final temperature 2D
+# plt.figure(figsize=(8, 6))
+# plt.contourf(X, Y, T, levels=50, cmap='viridis')
+# plt.colorbar(label='Temperature')
+# plt.title(f"Final Temperature at t = {num_steps * dt:.4f}")
+# plt.xlabel("x")
+# plt.ylabel("y")
+# plt.xlim(x_min, x_max)
+# plt.ylim(y_min, y_max)
+# plt.show()
+
+
+
+#%% 2nd: Polar coordinate
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+D_T = 1e-5
+c_a = 1e-3
+beta = 0.01
+T_f = 250.0
+
+R = 1.0
+N_r = 101
+dt = 0.001  # time step
+num_steps = 1000000
+
+# Space
+r = np.linspace(0, R, N_r)
+dr = r[1] - r[0]
+
+# Initialize the temperature
+T = T_f * np.ones(N_r)
+T[-1] = T_f
+
+
+for n in range(num_steps):
+
+    laplacian = np.zeros(N_r)
+
+    # i = 0, 1 / r_i fails -> Use symmetric (dT / dr = 0 at r = 0) + Taylor expansion at T = T1
+    laplacian[0] = 4 * (T[1] - T[0]) / dr ** 2
+
+    # i = 1, ..., N_r-2
+    for i in range(1, N_r - 1):
+        d2T_dr2 = (T[i + 1] - 2 * T[i] + T[i - 1]) / dr ** 2
+        dT_dr = (T[i + 1] - T[i - 1]) / (2 * dr)
+        laplacian[i] = d2T_dr2 + (1 / (r[i])) * dT_dr
+
+    T = T + dt * (D_T * laplacian + c_a * np.exp(beta * T))
+
+    # Apply the boundary condition again
+    T[-1] = T_f
+
+
+# To plot (r, theta, T). Add theta
+N_theta = 120
+theta = np.linspace(0, 2*np.pi, N_theta)
+r_grid, theta_grid = np.meshgrid(r, theta)
+
+# Transform the coordinates. check ...
+X = r_grid * np.cos(theta_grid)
+Y = r_grid * np.sin(theta_grid)
+
+# Plot
+fig = plt.figure(figsize=(12, 8))
+ax = fig.add_subplot(111, projection='3d')
+
+T = np.tile(T, (N_theta, 1))          # Copy the data in angular direction
+surf = ax.plot_surface(X, Y, T, cmap='inferno',
+                      rstride=2, cstride=2,
+                      linewidth=0,
+                      antialiased=True)
+
+cbar = fig.colorbar(surf, shrink=0.6, aspect=10)
+cbar.set_label('Temperature (K)', fontsize=12)
+
+ax.view_init(elev=40, azim=30)
+
+ax.set_xlabel('X (m)', labelpad=15)
+ax.set_ylabel('Y (m)', labelpad=15)
+ax.set_zlabel('Temperature (K)', labelpad=15)
+ax.set_title(f'Final Temperature at t = {num_steps * dt:.1f}s', pad=20)
+ax.set_zlim(T.min(), T.max()+10)
+
+plt.tight_layout()
+plt.show()
+
+
+# # 2D
+# plt.figure(figsize=(8, 6))
+# plt.plot(r, T, 'r-', linewidth=2, label='Temperature Profile')
+# plt.xlabel('Radius (r)', fontsize=12)
+# plt.ylabel('Temperature (K)', fontsize=12)
+# plt.title(f'Radial Temperature Distribution (t = {num_steps * dt:.1f}s)')
+# plt.legend()
+# plt.grid(True)
+# plt.show()
+
+
