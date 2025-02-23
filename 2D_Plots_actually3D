@@ -1,6 +1,6 @@
 # constant a, the PDE for T
 # central Euler for the space discretization
-# for different kinds of cross section. 1st: square (-1, 1) x (-1, 1); 2nd: circle with radius 1
+# for different kinds of cross sections. 1st: square (-1, 1) x (-1, 1); 2nd: circle with radius 1
 
 
 #%% 1st: Cartesian coordinate
@@ -62,7 +62,7 @@ surf = ax.plot_surface(X, Y, T_plot, cmap='viridis',
 cbar = fig.colorbar(surf, shrink=0.5, aspect=10)
 cbar.set_label('Temperature (K)', fontsize=12)
 
-ax.view_init(elev=30, azim=45)  # elev=俯仰角, azim=方位角
+ax.view_init(elev=30, azim=45)
 
 ax.set_xlabel('X (m)', fontsize=12, labelpad=10)
 ax.set_ylabel('Y (m)', fontsize=12, labelpad=10)
