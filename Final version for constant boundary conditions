@@ -1,0 +1,72 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from numba import njit
+
+# parameters
+number_of_points = 101
+L = 2
+delta_x = L / (number_of_points - 1)
+delta_t = 10  # time step
+D_T = 8.21*10**-8
+ca = 9.34*10**-19
+beita = 0.072
+
+r = D_T * delta_t / delta_x**2
+assert r <= 0.5, "Time step too large! Reduce delta_t."
+
+max_time_steps = 3000001
+plot_times = [0,50000,100000,500000,1000000,3000000]
+
+
+# bc=386 [0,100000,700000,1500000,6000000,7796900,7796992] (max 7796993)can be plotted
+# bc=400 [0,5000,100000,500000,2000000,2500000,2563785] (max:2563786)
+
+
+# boundary condition
+T = np.full(number_of_points, 300, dtype=np.float64)
+T[0] = T[-1] = 385  # Dirichlet boundary condition
+
+# Find index for x=0 (middle point)
+mid_index = number_of_points // 2
+
+# List to store T(0,t) values
+T0_values = []
+time_steps = []
+
+def update_temperature(T, T_new, r, delta_t, ca, beita):
+    T_new[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2]) + delta_t * ca * np.exp(beita * T[1:-1])
+    return T_new
+
+# FDM 
+T_new = np.copy(T)
+
+for step in range(max_time_steps):
+    T_new = update_temperature(T, T_new, r, delta_t, ca, beita)
+    # Store T(0,t) value at every step
+    T0_values.append(T_new[mid_index])
+    time_steps.append(step * delta_t)  # Convert step count to real time
+    if step in plot_times:
+    
+        plt.plot(np.linspace(-1, 1, number_of_points), T_new, label=f't = {step * delta_t} s')
+        
+    T[:] = T_new[:]  
+plt.title("Tf=385")
+plt.legend()
+plt.ylim(280, 430) 
+plt.show()
+
+
+
+
+
+
+# Plot T(0,t) vs. time
+plt.figure(figsize=(8, 5))
+plt.plot(time_steps, T0_values, label="T(0,t)", color="red")
+plt.xlabel("Time (s)")
+plt.ylabel("Temperature at x=0")
+plt.title("Temperature at x=0 over Time Tf=385")
+plt.grid()
+plt.legend()
+plt.ylim(300, 400) 
+plt.show()
