@@ -17,13 +17,16 @@ delta_t = 1/10000
 D_T = 1             #Diffusion constant - temperature
 D_a = 1             #Diffusion constant - reactant
 D = D_a/D_T
-gamma = 5           #Reaction constant - temperature
-mu = 5              #Reaction constant - reactant
+gamma = 1           #Reaction constant - temperature
+mu = 1              #Reaction constant - reactant
 r_T = delta_t/delta_x**2            
 r_a = D * (delta_t/delta_x**2)      #Make sure r_T and r_a are both < 0.5
 
+#Define function for spatially non-uniform initial reactant concentration
+#def f(x):
+#    return 0.5*x**2 + 0.5
 
-#Initial amount of reactant
+#Initial amount of reactant (constant case)
 initial_a = 1
 
 #Coupled system
@@ -49,6 +52,9 @@ initial_temp = tuple(initial_temp) #To prevent initial state from being modified
 initial_reactant = []
 for s in range(0, number_of_points):
     initial_reactant.append(initial_a)
+#x = np.linspace(-1, 1, number_of_points)
+#for s in range(0,number_of_points):
+#    initial_reactant.append(f(x[s]))
 initial_reactant = tuple(initial_reactant) #To prevent initial state from being modified
 
 #Run this block (and set the boundary conditions if needed) to reset the system
@@ -107,7 +113,7 @@ def update_state(n_steps, time_gap):
             
             
 #Simulate the system
-update_state(100000,10000)
+update_state(20000,10000)
 
 #Save results (for making plots with subplots for different parameter values)
 central_values_save = tuple(central_values)
@@ -120,14 +126,14 @@ x = np.linspace(-1, 1, number_of_points)
 
 #Plot with two subplots for different time values
 fig, (ax1, ax2) = plt.subplots(2, figsize = (8,8))
-ax1.plot(x, plotsplease[1][0], label = 'Reactant a')
-ax1.plot(x, plotsplease[1][1], label = 'Temperature u')
+ax1.plot(x, plotsplease[0][0], label = 'Reactant a')
+ax1.plot(x, plotsplease[0][1], label = 'Temperature u')
 ax1.set_xlabel("x")
-ax1.set_title(f'τ = {round(plotsplease[1][2]*delta_t, 2)}')
-ax2.plot(x, plotsplease[2][0], label = 'Reactant a')
-ax2.plot(x, plotsplease[2][1], label = 'Temperature u')
+ax1.set_title(f'τ = {round(plotsplease[0][2]*delta_t, 2)}')
+ax2.plot(x, plotsplease[1][0], label = 'Reactant a')
+ax2.plot(x, plotsplease[1][1], label = 'Temperature u')
 ax2.set_xlabel("x")
-ax2.set_title(f'τ = {round(plotsplease[2][2]*delta_t, 2)}')
+ax2.set_title(f'τ = {round(plotsplease[1][2]*delta_t, 2)}')
 plt.tight_layout()
 ax1.legend()
 ax2.legend()
@@ -139,6 +145,7 @@ ax2.grid()
 plt.plot(central_values[2], central_values[0], label = 'Reactant a(0,τ)')
 plt.plot(central_values[2], central_values[1], label = 'Temperature u(0,τ)')
 plt.xlabel('τ')
+plt.ylim(0,1)
 plt.tight_layout()
 plt.legend()
 plt.grid()
@@ -163,6 +170,22 @@ ax1.grid()
 ax2.grid()
 
 
+#Two subplots - space/time plot and central value plot
+fig, (ax1, ax2) = plt.subplots(2, figsize = (6,8))
+for m in range(0,len(plotsplease)):
+    ax1.plot(x, plotsplease[m][0], label = f'Reactant - τ = {round(plotsplease[m][2]*delta_t, 2)}')
+for m in range(0,len(plotsplease)):
+    ax1.plot(x, plotsplease[m][1], label = f'Temperature - τ = {round(plotsplease[m][2]*delta_t, 2)}')
+ax1.set_xlabel('τ')
+ax2.plot(central_values[2], central_values[0], label = 'Reactant a(0,τ)')
+ax2.plot(central_values[2], central_values[1], label = 'Temperature u(0,τ)')
+ax2.set_xlabel('τ')
+ax2.set_xlim(0,2)
+plt.tight_layout()
+ax1.legend(prop={'size':8})
+ax2.legend()
+ax1.grid()
+ax2.grid()
 
 
 
