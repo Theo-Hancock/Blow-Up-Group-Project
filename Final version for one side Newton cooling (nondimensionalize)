@@ -1,0 +1,86 @@
+import math
+import numpy as np
+import matplotlib.pyplot as plt
+
+number_of_points = 201
+number_of_iterations = 115293
+plot_times = [0,100000,110000,114000,115293]  
+
+#lambda=0.5 k=2   list [0,10000,20000,75000,500000] (stable)
+#lambda=0.5 k=0.5 list [0,100000,110000,114000,115293] (unstable)
+#lambda=1   k=2    [0,20000,38000,42500,43207] (stable)
+#lambda=0.55 k=1.9 list [0,10000,20000,75000,500000] (stable)
+
+delta_tau = 0.00004
+delta_X = 2 / number_of_points
+lambda_ = 0.5
+r = delta_tau / delta_X**2
+k = 0.5
+u_0 = 0
+
+print("Make sure Delta Tau << 1/Lambda")
+print("Delta Tau =", delta_tau)
+print("1/Lambda =", 1 / lambda_)
+
+if r > 1 / 2:
+    print("Von Neumann stability criterion has not been met (r < 1/2)")
+
+left_boundary_condition = 0
+right_boundary_condition = 0
+
+boundary_state = [0] * number_of_points
+boundary_state[0] = left_boundary_condition
+boundary_state[-1] = right_boundary_condition
+
+state = boundary_state
+plots = []  
+time_labels = []  
+
+
+def heat_diffusion_function(i):
+    return state[i + 1] * r + state[i] * (1 - 2 * r) + state[i - 1] * r + lambda_ * delta_tau * math.exp(state[i])
+
+def boundary_condition_function(i):
+    return state[i] * (1 - 2 * r * delta_X * k - 2 * r) + state[i - 1] * (2 * r) + lambda_ * delta_tau * math.exp(state[i]) + 2 * r * delta_X * k * u_0
+
+def new_state_function(iteration):
+    new_state = []
+    for i in range(number_of_points):
+        if i == 0:
+            new_state.append(left_boundary_condition)
+        elif i == number_of_points - 1:
+            new_state.append(boundary_condition_function(i))
+        else:
+            new_state.append(heat_diffusion_function(i))
+    
+    
+    if iteration in plot_times:
+        plots.append(new_state.copy())  
+        time_labels.append(iteration * delta_tau) 
+    
+    
+    for state_position in range(number_of_points):
+        state[state_position] = new_state[state_position]
+
+
+percent = math.floor(number_of_iterations / 20)
+list_of_percent = [i * percent for i in range(20)]
+
+for iteration in range(number_of_iterations + 1):  
+    new_state_function(iteration)
+    if iteration in list_of_percent:
+        print(f"{100 * iteration / number_of_iterations:.1f} %")
+
+
+x = np.linspace(-1, 1, number_of_points)
+
+for i, plot in enumerate(plots):
+    plt.plot(x, plot, label=f't = {time_labels[i]:.2f} s')  
+
+plt.grid(True)
+plt.xlim(-1, 1)
+plt.ylim(0, 10)
+plt.xlabel("X")
+plt.ylabel("u")
+plt.legend()  
+plt.show()
