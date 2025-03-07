@@ -1,0 +1,77 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.sparse import diags
+from scipy.sparse.linalg import spsolve
+
+def f(Tend):
+    # parameters
+    D_T = 19*10**-6
+    ca = 9.34*10**-19
+    beita = 0.072
+    
+    #newton cooling
+    k = 5
+    Ts = 300
+    
+    # integrate parameters
+    b_l = -1  # left_boundary
+    b_r = 1   # right boundary
+    h = 0.02  # x_step
+    K = 0.2   # time_step
+    xx = np.arange(b_l, b_r + h, h)
+    N = len(xx)  # number of points
+    
+    # Matrix defined
+    r = D_T * K / h**2
+    e = np.ones(N)
+    L = diags([e, -2*e, e], offsets=[1, 0, -1], shape=(N, N))
+    
+    # apply Newton cooling
+    L = L.tolil()
+    L[-1, -1] = L[-1, -1] - 2 * k * h
+    L[-1, -2] = 2
+    L = L.tocsc() * (D_T * K / h**2)
+    
+
+    def f_source(u):
+        return ca * np.exp(beita * u)
+    
+
+    u_0 = np.full(N,300,dtype=np.float64)
+    u_0[0] = 509
+    u_0[-1] = 509
+    
+    # integrate
+    N2 = int(Tend / K)
+    for _ in range(N2):
+        y_x = f_source(u_0)
+        y_x[-1] += (D_T * 2 * k * Ts * h) / h**2
+        u_0 = u_0 + L.dot(u_0) + K * y_x
+        u_0[0] = 509
+    
+    return u_0
+
+# time step to plot
+T_m =[0,5000,10000,50000,200000,347836]
+# u_0 = 550 T_m = [0,1000,3000,5000,8271] blow up
+# u_0 = 509  [0,5000,10000,50000,200000,347836] blow-up
+# u_0 = 508  [0,1000,5000,10000,50000,100000,500000]steady 
+
+xx = np.arange(-1, 1 + 0.02, 0.02)
+
+
+Time_step=0.2
+
+
+#plotting
+plt.figure()
+for T in T_m:
+    jie = f(T)
+    plt.plot(xx, jie, label=f'T={T*Time_step} s')
+plt.ylim(280,600)
+plt.legend()
+plt.xlabel('x')
+plt.ylabel('u(x)')
+plt.title('Newton cooling steady state')
+plt.grid(True)
+plt.show()
