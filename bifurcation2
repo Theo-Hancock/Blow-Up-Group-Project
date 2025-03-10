@@ -1,0 +1,21 @@
+# Copy the following texts in Maple
+# to plot the bifurcation diagram in section 3 in the report.
+
+with(plots);
+beta := 0.076;
+ca := 1.85*0.1e-18;
+D_T := 8.39*0.00001;
+param := ca*beta/(2*D_T);
+implicitplot(T[0] = T[f] + 2*ln(cosh(sqrt(param)*exp(beta*T[0]/2)))/beta, T[f] = 0 .. 600, T[0] = 0 .. 650, labels = ["Tf", "Tm"], view = [0 .. 600, 0 .. 650]);
+
+with(plots);
+T0_eq := T0 = Tf + 2*ln(cosh(sqrt(param)*exp(beta*T0/2)))/beta;
+
+u_sol := fsolve(u*tanh(u) = 1, u = 1.1996);
+T0_sol := 2*ln(u_sol/sqrt(param))/beta;
+Tc := T0_sol - 2*ln(cosh(u_sol))/beta;
+
+
+implicit_plot := implicitplot(T0_eq, Tf = 0 .. 600, T0 = 0 .. 650, labels = ["Tf", "Tm"], view = [0 .. 600, 0 .. 650], color = blue);
+vertical_line := plot([[Tc, 0], [Tc, 650]], color = red, linestyle = dash, thickness = 2, legend = "Tf=Tc", legendstyle = [location = "right"]);
+display(implicit_plot, vertical_line);
