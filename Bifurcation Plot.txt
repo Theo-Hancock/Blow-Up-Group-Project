@@ -1,0 +1,34 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Mar 10 19:29:53 2025
+
+@author: theoj
+"""
+
+#Paste the following text into Maple
+#To plot the bifurcation diagram for section 4
+
+with(plots, implicitplot):
+    
+u_1 := 473
+u_0 := 303
+k := 0.103
+h := 80*k
+E_R := 16220
+C0_Q0_A := 710000000000000000;
+
+beta := E_R/u_1^2;
+
+lambda := C0_Q0_A*exp(-2*beta*u_1)/k;
+
+x_m := sqrt(2/(beta*lambda))*exp((-beta*u_m)/2)*arccosh(exp(beta*(u_m - u_1)/2)) - l;
+
+eq := k*exp(beta*u_m/2)*sqrt(beta*lambda/2)*tanh(sqrt(beta*lambda/2)*exp(beta*u_m/2)*(l - x_m))/h = beta/2*(u_m - u_0) - ln(cosh(sqrt(beta*lambda/2)*exp(beta*u_m/2)*(l - x_m)));
+
+#To see top branch of bifurcation plot
+implicitplot(eq, l = 0 .. 1, u_m = 0 .. 700, labels = ["l", "T"]);
+
+#Too see zoomed in view of bifurcation point
+implicitplot(eq, l = 0.185 .. 1, u_m = 473 .. 700, labels = ["l", "T"]);
+
+
