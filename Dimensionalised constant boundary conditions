@@ -2,71 +2,79 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import njit
 
-# parameters
-number_of_points = 101
-L = 2
-delta_x = L / (number_of_points - 1)
-delta_t = 10  # time step
-D_T = 8.21*10**-8
-ca = 9.34*10**-19
-beita = 0.072
+plt.rcParams.update({
+    "font.size": 18,        
+    "axes.labelsize": 20,   
+    "axes.labelweight": "bold",  
+    "axes.titleweight": "bold",  
+    "axes.linewidth": 3,    
+    "lines.linewidth": 3, 
+    "legend.fontsize": 14   
+})
 
-r = D_T * delta_t / delta_x**2
-assert r <= 0.5, "Time step too large! Reduce delta_t."
+# Function to solve heat equation and plot results
+def solve_heat_equation(max_time_steps, plot_times, boundary_temp, ax):
+    number_of_points = 101
+    L = 2
+    delta_x = L / (number_of_points - 1)
+    delta_t = 0.1  # time step
 
-max_time_steps = 3000001
-plot_times = [0,50000,100000,500000,1000000,3000000]
+    # Given parameters
+    p = 1725  # Material density
+    M = 0.08004  # Molar mass
+    C0 = p / M  # Molar concentration
+    c = 1.740  # Specific heat capacity
+    E = 141600  # Activation energy
+    R = 8.3  # Universal gas constant
+    k = 0.25  # Thermal conductivity
+    A = np.exp(14.2)  # Arrhenius pre-exponential term
+    Q0 = 365250  # Heat of reaction
+    T_1 = 473.15  # Temperature used for Arrhenius approximation
 
-# bc=380,385 [0,50000,100000,500000,1000000,3000000]
-# bc=386 [0,100000,700000,1500000,6000000,7056000] (max 7056001)can be plotted
-# bc=400 [0,100000,500000,1000000,1500000,1879885] (max:1879886)
+    # Calculated parameters
+    beita = E / (R * (T_1 ** 2))
+    gamma = C0 * Q0 * A * np.exp(-2 * beita * T_1)
 
+    # Main parameters
+    D_T = k / (p * c)
+    ca = gamma / (p * c)
+    r = D_T * delta_t / delta_x**2
+    assert r <= 0.5, "Time step too large! Reduce delta_t."
 
-# boundary condition
-T = np.full(number_of_points, 300, dtype=np.float64)
-T[0] = T[-1] = 385  # Dirichlet boundary condition
+    # Boundary condition
+    T = np.full(number_of_points, 300, dtype=np.float64)
+    T[0] = T[-1] = boundary_temp  # Dirichlet boundary condition
 
-# Find index for x=0 (middle point)
-mid_index = number_of_points // 2
+    # Find index for x=0 (middle point)
+    mid_index = number_of_points // 2
 
-# List to store T(0,t) values
-T0_values = []
-time_steps = []
+    def update_temperature(T, T_new, r, delta_t, ca, beita):
+        T_new[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2]) + delta_t * ca * np.exp(beita * T[1:-1])
+        return T_new
 
-def update_temperature(T, T_new, r, delta_t, ca, beita):
-    T_new[1:-1] = T[1:-1] + r * (T[2:] - 2*T[1:-1] + T[:-2]) + delta_t * ca * np.exp(beita * T[1:-1])
-    return T_new
+    # FDM 
+    T_new = np.copy(T)
 
-# FDM 
-T_new = np.copy(T)
+    for step in range(max_time_steps):
+        T_new = update_temperature(T, T_new, r, delta_t, ca, beita)
+        if step in plot_times:
+            ax.plot(np.linspace(-1, 1, number_of_points), T_new, label=f't = {step * delta_t} s')
+        T[:] = T_new[:]  
+    ax.legend()
+    ax.grid(True) 
+    ax.set_ylim(280, 650) 
+    ax.set_xlabel("Position (x)")
+    ax.set_ylabel("Temperature (T)")
+# Create subplots
+fig, axes = plt.subplots(1, 2, figsize=(20, 8))
 
-for step in range(max_time_steps):
-    T_new = update_temperature(T, T_new, r, delta_t, ca, beita)
-    # Store T(0,t) value at every step
-    T0_values.append(T_new[mid_index])
-    time_steps.append(step * delta_t)  # Convert step count to real time
-    if step in plot_times:
-    
-        plt.plot(np.linspace(-1, 1, number_of_points), T_new, label=f't = {step * delta_t} s')
-        
-    T[:] = T_new[:]  
-plt.title("Tf=385")
-plt.legend()
-plt.ylim(280, 430) 
-plt.show()
+# Solve and plot for first case
+solve_heat_equation(742750, [0,50000,100000,200000,500000,742749], 476, axes[0])
+axes[0].set_title("Figure a: Boundary Condition: Tf = 476K")
 
+# Solve and plot for second case
+solve_heat_equation(107406, [0,50000,100000,107000,107405], 520, axes[1])
+axes[1].set_title("Figure b: Boundary Condition: Tf = 520K")
 
-
-
-
-
-# Plot T(0,t) vs. time
-plt.figure(figsize=(8, 5))
-plt.plot(time_steps, T0_values, label="T(0,t)", color="red")
-plt.xlabel("Time (s)")
-plt.ylabel("Temperature at x=0")
-plt.title("Temperature at x=0 over Time Tf=385")
-plt.grid()
-plt.legend()
-plt.ylim(300, 400) 
+plt.tight_layout()
 plt.show()
